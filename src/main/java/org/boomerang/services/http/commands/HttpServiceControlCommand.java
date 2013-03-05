@@ -1,5 +1,9 @@
 package org.boomerang.services.http.commands;
 
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+
+import org.apache.felix.service.command.CommandSession;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
@@ -73,7 +77,7 @@ public class HttpServiceControlCommand
 	 * Searches for the {@link HttpService} {@link Bundle} and <code>starts</code> if it is not already in a state of
 	 * {@link Bundle#STARTING} or {@link Bundle#ACTIVE}.
 	 */
-	public void start()
+	public void start(CommandSession session)
 	{
 		Bundle bundle = getBundle();
 
@@ -81,7 +85,7 @@ public class HttpServiceControlCommand
 		{
 			if (bundle.getState() != Bundle.STARTING && bundle.getState() != Bundle.ACTIVE)
 			{
-				info("Starting HTTP Server...");
+				info(session, "Starting HTTP Server...");
 
 				try
 				{
@@ -89,12 +93,12 @@ public class HttpServiceControlCommand
 				}
 				catch (BundleException e)
 				{
-					error(e);
+					error(session, e);
 				}
 			}
 			else
 			{
-				info("HTTP Server is already running.");
+				info(session, "HTTP Server is already running.");
 			}
 		}
 	}
@@ -103,7 +107,7 @@ public class HttpServiceControlCommand
 	 * Searches for the {@link HttpService} {@link Bundle} and <code>stops</code> if it is in a state of {@link Bundle#STARTING}, 
 	 * {@link Bundle#ACTIVE} and not in the process of {@link Bundle#STOPPING}.
 	 */
-	public void stop()
+	public void stop(CommandSession session)
 	{
 		Bundle bundle = getBundle();
 
@@ -111,7 +115,7 @@ public class HttpServiceControlCommand
 		{
 			if ((bundle.getState() == Bundle.STARTING || bundle.getState() == Bundle.ACTIVE) && bundle.getState() != Bundle.STOPPING)
 			{
-				info("Stopping HTTP Server...");
+				info(session, "Stopping HTTP Server...");
 
 				try
 				{
@@ -119,12 +123,12 @@ public class HttpServiceControlCommand
 				}
 				catch (BundleException e)
 				{
-					error("Unable to stop bundle", e);
+					error(session, "Unable to stop bundle", e);
 				}
 			}
 			else
 			{
-				info("HTTP Server is already stopped.");
+				info(session, "HTTP Server is already stopped.");
 			}
 		}
 	}
@@ -132,25 +136,43 @@ public class HttpServiceControlCommand
 	/**
 	 * Searches for the {@link HttpService} {@link Bundle} and <code>stops</code> then <code>starts</code> it.s
 	 */
-	public void restart()
+	public void restart(CommandSession session)
 	{
-		stop();
-		start();
+		stop(session);
+		start(session);
 	}
 	
-	private void error(String message, Throwable t)
+	private void error(CommandSession session, String message, Throwable t)
 	{
-		log(LogService.LOG_ERROR, message, t);
+		print(session, LogService.LOG_ERROR, message, t);
 	}
 	
-	private void error(Throwable t)
+	private void error(CommandSession session, Throwable t)
 	{
-		log(LogService.LOG_ERROR, null, t);
+		print(session, LogService.LOG_ERROR, null, t);
 	}
 	
-	private void info(String message)
+	private void info(CommandSession session, String message)
 	{
-		log(LogService.LOG_INFO, message, null);
+		print(session, LogService.LOG_INFO, message, null);
+	}
+	
+	private void print(CommandSession session, int level, String message, Throwable t)
+	{
+		try
+		{
+			session.getConsole().write(message.concat("\r\n").getBytes("UTF-8"));
+		}
+		catch (UnsupportedEncodingException e)
+		{
+			log(LogService.LOG_ERROR, "Error writing to console", t);
+		}
+		catch (IOException e)
+		{
+			log(LogService.LOG_ERROR, "Error writing to console", t);
+		}
+		
+		log(level, message, t);
 	}
 	
 	private void log(int level, String message, Throwable t)
