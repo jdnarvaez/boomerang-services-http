@@ -70,8 +70,8 @@ public class HttpServiceControlCommand
 	}
 
 	/**
-	 * Searches for the <code>org.eclipse.equinox.http.jetty</code> {@link Bundle}
-	 * and <code>starts</code> if it is not already started or starting.
+	 * Searches for the {@link HttpService} {@link Bundle} and <code>starts</code> if it is not already in a state of
+	 * {@link Bundle#STARTING} or {@link Bundle#ACTIVE}.
 	 */
 	public void start()
 	{
@@ -99,13 +99,17 @@ public class HttpServiceControlCommand
 		}
 	}
 
+	/**
+	 * Searches for the {@link HttpService} {@link Bundle} and <code>stops</code> if it is in a state of {@link Bundle#STARTING}, 
+	 * {@link Bundle#ACTIVE} and not in the process of {@link Bundle#STOPPING}.
+	 */
 	public void stop()
 	{
 		Bundle bundle = getBundle();
 
 		if (bundle != null)
 		{
-			if (bundle.getState() == Bundle.STARTING || bundle.getState() == Bundle.ACTIVE)
+			if ((bundle.getState() == Bundle.STARTING || bundle.getState() == Bundle.ACTIVE) && bundle.getState() != Bundle.STOPPING)
 			{
 				info("Stopping HTTP Server...");
 
@@ -125,43 +129,13 @@ public class HttpServiceControlCommand
 		}
 	}
 
+	/**
+	 * Searches for the {@link HttpService} {@link Bundle} and <code>stops</code> then <code>starts</code> it.s
+	 */
 	public void restart()
 	{
-		Bundle bundle = getBundle();
-
-		if (bundle != null)
-		{
-			info("Restarting HTTP Server...");
-
-			if (bundle.getState() == Bundle.STARTING || bundle.getState() == Bundle.ACTIVE)
-			{
-				info("Stopping HTTP Server...");
-
-				try
-				{
-					bundle.stop();
-				}
-				catch (BundleException e)
-				{
-					error("Unable to stops server", e);
-				}
-			}
-			else
-			{
-				info("HTTP Server is already stopped.");
-			}
-
-			info("Starting HTTP Server...");
-
-			try
-			{
-				bundle.start();
-			}
-			catch (BundleException e)
-			{
-				error("Unable to start server", e);
-			}
-		}
+		stop();
+		start();
 	}
 	
 	private void error(String message, Throwable t)
